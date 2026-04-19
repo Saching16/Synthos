@@ -52,6 +52,7 @@ backend/
     services/
       pdf.py             # extraction + cleanup
       rag.py             # LightRAG singleton wired to Supabase + OpenRouter LLM + embed
+      llm.py             # LlmClient: chat complete + stream, retries, token/latency logs
       openrouter.py      # AsyncOpenAI client for OpenRouter (chat + embeddings)
       agentwrite.py      # plan() + write_segments() with $CONTEXT$ injection
   supabase/schema.sql    # pgvector extension + LightRAG tables + documents table
@@ -132,6 +133,10 @@ npm run dev                # http://localhost:5173
 cd backend && .venv/bin/ruff check app && .venv/bin/ruff format app
 npm --prefix frontend run lint
 npm --prefix frontend run build
+
+# LLM smoke (OpenRouter; needs OPENROUTER_API_KEY in backend/.env)
+cd backend && python -m app.services.llm "Reply with exactly the word 'pong'."
+cd backend && python -m app.services.llm --stream "Say hi in one short sentence."
 ```
 
 If you add new commands (tests, migrations, etc.), document them here.

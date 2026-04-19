@@ -104,18 +104,18 @@ Goal: database is ready for LightRAG + our `documents` table before any code tou
 
 Goal: a single tested entry point for every chat completion (via OpenRouter).
 
-- [ ] **3.1 `services/llm.py` (or extend `openrouter.py`)**
+- [x] **3.1 `services/llm.py` (or extend `openrouter.py`)**
   - `class LlmClient` wrapping `openai.AsyncOpenAI(base_url=OPENROUTER_BASE_URL, api_key=OPENROUTER_API_KEY)` from `get_async_openrouter_client()`.
   - Methods: `complete(prompt, max_tokens=4096, temperature=0.7) -> str` and `stream(prompt, ...) -> AsyncIterator[str]`.
   - Retry with `tenacity` on transient errors; surface context-length errors immediately.
   - Acceptance: a throwaway `python -m app.services.llm "Say hi"` script returns text.
-- [ ] **3.2 Token + latency logging**
+- [x] **3.2 Token + latency logging**
   - Log `model`, `prompt_tokens`, `completion_tokens`, `latency_ms` after each call.
   - Acceptance: visible in stdout during the smoke test.
 
 ### Verify Phase 3
 
-- [ ] Round-trip:
+- [x] Round-trip:
 
   ```bash
   cd backend
@@ -123,9 +123,9 @@ Goal: a single tested entry point for every chat completion (via OpenRouter).
   ```
 
   Output contains `pong`.
-- [ ] Streaming works: add `--stream` to the same script; tokens print incrementally, not all at once.
-- [ ] Telemetry line: above run prints a log entry with the configured OpenRouter model id, non-zero `prompt_tokens`, `completion_tokens`, and `latency_ms`.
-- [ ] Retry on transient: temporarily set `OPENROUTER_BASE_URL` to a bogus host that 503s and run again — logs show retry attempts before final failure (then revert).
+- [x] Streaming works: add `--stream` to the same script; tokens print incrementally, not all at once.
+- [x] Telemetry line: above run prints a log entry with the configured OpenRouter model id, non-zero `prompt_tokens`, `completion_tokens`, and `latency_ms`.
+- [x] Retry on transient: temporarily set `OPENROUTER_BASE_URL` to a bogus host that 503s and run again — logs show retry attempts before final failure (then revert).
 
 ---
 
