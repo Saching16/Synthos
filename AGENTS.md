@@ -137,6 +137,9 @@ npm --prefix frontend run build
 # LLM smoke (OpenRouter; needs OPENROUTER_API_KEY in backend/.env)
 cd backend && python -m app.services.llm "Reply with exactly the word 'pong'."
 cd backend && python -m app.services.llm --stream "Say hi in one short sentence."
+
+# PDF extraction smoke
+cd backend && python -m app.services.pdf "../Documentation/Unleashing 10000 Word Generation From Long Context.pdf"
 ```
 
 If you add new commands (tests, migrations, etc.), document them here.

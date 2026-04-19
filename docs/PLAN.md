@@ -133,18 +133,18 @@ Goal: a single tested entry point for every chat completion (via OpenRouter).
 
 Goal: bytes in, clean text + metadata out.
 
-- [ ] **4.1 `services/pdf.py`**
+- [x] **4.1 `services/pdf.py`**
   - `extract_text(file_bytes) -> ExtractedDoc{text, pages, char_count}`.
   - Try `pypdf`; if a page yields `< 30` chars, retry that page with `pdfplumber`.
   - Strip repeated headers/footers (lines that appear on `> 50%` of pages).
   - Acceptance: extracting `Documentation/Unleashing 10000 Word Generation From Long Context.pdf` yields plausible text (`> 20k` chars, page count matches).
-- [ ] **4.2 Hashing + dedupe helper**
+- [x] **4.2 Hashing + dedupe helper**
   - `sha256(file_bytes)` returned alongside `ExtractedDoc`.
   - Acceptance: same file → same hash; different files differ.
 
 ### Verify Phase 4
 
-- [ ] Extraction:
+- [x] Extraction:
 
   ```bash
   cd backend
@@ -152,9 +152,9 @@ Goal: bytes in, clean text + metadata out.
   ```
 
   Prints something like `pages=20 char_count=58231 sha256=…` and a sample of readable text (no garbled glyphs in the sample).
-- [ ] Hash stability: run the same command twice → identical `sha256`.
-- [ ] Hash uniqueness: run against `AI-Engineering-Assignment.pdf` → different `sha256`.
-- [ ] Header/footer stripping: the printed sample does not include the repeated paper title/page-number line that appears on every page.
+- [x] Hash stability: run the same command twice → identical `sha256`.
+- [x] Hash uniqueness: run against `AI-Engineering-Assignment.pdf` → different `sha256`.
+- [x] Header/footer stripping: the printed sample does not include the repeated paper title/page-number line that appears on every page.
 
 ---
 
