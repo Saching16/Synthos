@@ -40,7 +40,8 @@ Do **not** silently swap any of these without updating both `AGENTS.md` and `doc
 ```
 backend/
   app/
-    main.py              # FastAPI factory, CORS, lifespan (init LightRAG once)
+    main.py              # FastAPI factory, CORS, lifespan (DB pool + LightRAG later)
+    db.py                # asyncpg pool helpers + DB health
     config.py            # Pydantic settings, env loading, client factories
     schemas.py           # Pydantic request/response models
     routes/

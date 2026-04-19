@@ -78,25 +78,25 @@ Goal: typed config, fail-fast on missing keys, no secrets in code.
 
 Goal: database is ready for LightRAG + our `documents` table before any code touches it.
 
-- [ ] **2.1 Provision project**
+- [x] **2.1 Provision project**
   - Create Supabase project, copy `SUPABASE_DB_URL` into `.env`.
   - Note the project in `docs/writeup.md` (region, plan).
-- [ ] **2.2 `backend/supabase/schema.sql`**
+- [x] **2.2 `backend/supabase/schema.sql`**
   - `create extension if not exists vector;`
   - `documents` table: `id uuid pk default gen_random_uuid()`, `filename text`, `sha256 text unique`, `pages int`, `char_count int`, `created_at timestamptz default now()`.
   - Index on `sha256`.
   - LightRAG's Postgres storages auto-create their own tables on first use; we don't pre-create them.
   - Acceptance: `psql "$SUPABASE_DB_URL" -f backend/supabase/schema.sql` runs cleanly twice (idempotent).
-- [ ] **2.3 `db.py` async pool**
+- [x] **2.3 `db.py` async pool**
   - `asyncpg` pool created in lifespan, exposed via dependency.
   - Acceptance: `GET /health` returns `db: ok` after pinging `select 1`.
 
 ### Verify Phase 2
 
-- [ ] Extension installed: `psql "$SUPABASE_DB_URL" -c "\dx vector"` shows the extension as installed.
-- [ ] Table exists: `psql "$SUPABASE_DB_URL" -c "\d documents"` lists `id`, `filename`, `sha256`, `pages`, `char_count`, `created_at`.
+- [ ] Extension installed: `psql "$SUPABASE_DB_URL" -c "\dx vector"` shows the extension as installed (or confirm in SQL Editor after running `schema.sql`).
+- [ ] Table exists: `psql "$SUPABASE_DB_URL" -c "\d documents"` lists `id`, `filename`, `sha256`, `pages`, `char_count`, `created_at` (or **Table Editor** → `documents`).
 - [ ] Idempotent: re-run `psql "$SUPABASE_DB_URL" -f backend/supabase/schema.sql` — no errors.
-- [ ] Pool wired: `curl -s localhost:8000/health` returns `{"status":"ok","db":"ok"}` (or equivalent), and stopping the DB makes that field flip to `"db":"down"` instead of crashing the server.
+- [x] Pool wired: `curl -s localhost:8000/health` returns `{"status":"ok","db":"ok"}` (or equivalent), and stopping the DB makes that field flip to `"db":"down"` instead of crashing the server.
 
 ---
 

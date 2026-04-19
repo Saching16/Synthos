@@ -34,6 +34,15 @@ class Settings(BaseSettings):
     openrouter_app_title: str = "Handbook Generator"
 
     supabase_db_url: str | None = None
+
+    @field_validator("supabase_db_url", mode="before")
+    @classmethod
+    def empty_supabase_url(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return str(v).strip()
     supabase_url: str | None = None
     supabase_service_key: str | None = None
 
