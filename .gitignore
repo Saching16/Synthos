@@ -1,0 +1,27 @@
+# Python
+backend/.venv/
+backend/.env
+backend/.lightrag/
+backend/.handbooks/
+*.pyc
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Demo binaries (keep tracked markdown if needed)
+docs/demo/*.mp4
+docs/demo/*.mov
+docs/demo/*.webm
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

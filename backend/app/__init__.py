@@ -1,0 +1,1 @@
+"""Handbook Generator API."""
