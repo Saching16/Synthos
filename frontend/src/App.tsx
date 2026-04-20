@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiUrl, fetchHealth } from './api'
 import { Chat } from './components/Chat'
 import { DocumentList } from './components/DocumentList'
+import { HandbookView } from './components/HandbookView'
 import { Uploader } from './components/Uploader'
 
 function App() {
@@ -64,28 +65,14 @@ function App() {
         </section>
         <section
           ref={handbookRef}
-          className={`flex min-h-[200px] flex-col bg-slate-950 p-4 transition-shadow md:min-h-0 ${
+          className={`flex min-h-0 min-h-[320px] flex-col bg-slate-950 p-4 transition-shadow md:min-h-0 ${
             handbookFlash ? 'ring-2 ring-sky-500 ring-offset-2 ring-offset-slate-950' : ''
           }`}
         >
           <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
             Handbook
           </h2>
-          <p className="mb-3 text-xs text-slate-500">
-            Generation UI arrives in Phase 12. Topic below is filled when chat
-            detects a handbook request.
-          </p>
-          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="hb-topic">
-            Topic
-          </label>
-          <input
-            id="hb-topic"
-            type="text"
-            value={handbookTopic}
-            onChange={(e) => setHandbookTopic(e.target.value)}
-            placeholder="e.g. Handbook on Retrieval-Augmented Generation"
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-sky-600 focus:outline-none"
-          />
+          <HandbookView topic={handbookTopic} onTopicChange={setHandbookTopic} />
         </section>
       </div>
     </div>

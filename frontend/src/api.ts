@@ -133,6 +133,89 @@ export async function openChatSse(
   )
 }
 
+export type HandbookSseCallbacks = {
+  onPlanReady?: (p: { total_steps: number; target_words_sum: number }) => void
+  onParagraph?: (p: {
+    index: number
+    total: number
+    text: string
+    words: number
+    running_total: number
+    phase?: string
+  }) => void
+  onExpanding?: (p: {
+    current_words: number
+    target_floor: number
+    target_cap: number
+  }) => void
+  onDone?: (p: { id: string; words: number; topic: string }) => void
+  onError?: (message: string) => void
+}
+
+/**
+ * POST `/handbook` (SSE): `plan_ready`, `paragraph`, `expanding`, `done`, `error`.
+ */
+export async function openHandbookSse(
+  body: { topic: string; document_ids?: string[] },
+  callbacks: HandbookSseCallbacks,
+  signal?: AbortSignal,
+): Promise<void> {
+  return openSse('/handbook', body, {
+    onEvent: (eventType, data) => {
+      try {
+        const j = JSON.parse(data) as Record<string, unknown>
+        if (eventType === 'plan_ready') {
+          callbacks.onPlanReady?.({
+            total_steps: Number(j.total_steps ?? 0),
+            target_words_sum: Number(j.target_words_sum ?? 0),
+          })
+          return
+        }
+        if (eventType === 'paragraph') {
+          callbacks.onParagraph?.({
+            index: Number(j.index ?? 0),
+            total: Number(j.total ?? 0),
+            text: String(j.text ?? ''),
+            words: Number(j.words ?? 0),
+            running_total: Number(j.running_total ?? 0),
+            phase: typeof j.phase === 'string' ? j.phase : undefined,
+          })
+          return
+        }
+        if (eventType === 'expanding') {
+          callbacks.onExpanding?.({
+            current_words: Number(j.current_words ?? 0),
+            target_floor: Number(j.target_floor ?? 0),
+            target_cap: Number(j.target_cap ?? 0),
+          })
+          return
+        }
+        if (eventType === 'done') {
+          callbacks.onDone?.({
+            id: String(j.id ?? ''),
+            words: Number(j.words ?? 0),
+            topic: String(j.topic ?? ''),
+          })
+          return
+        }
+        if (eventType === 'error') {
+          const msg =
+            typeof j.message === 'string' ? j.message : 'Handbook generation failed'
+          callbacks.onError?.(msg)
+        }
+      } catch {
+        callbacks.onError?.('Malformed server event')
+      }
+    },
+  }, signal)
+}
+
+export function handbookDownloadUrl(id: string, format: 'md' | 'pdf'): string {
+  return apiUrl(
+    `/handbook/${encodeURIComponent(id)}/download?format=${format}`,
+  )
+}
+
 export type SseHandlers = {
   onOpen?: () => void
   onEvent?: (eventType: string, data: string) => void

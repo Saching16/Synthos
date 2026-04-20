@@ -413,9 +413,9 @@ Goal: streaming chat with grounded answers.
 
 Goal: live progress + final document.
 
-- [ ] **12.1 `HandbookView.tsx`** — topic input, Generate button, progress bar (`paragraphs done / total planned`, running word count), live markdown preview that grows as paragraphs arrive.
-- [ ] **12.2 Cancel button** — closes the `EventSource`, server drops the run.
-- [ ] **12.3 Download buttons** — `.md` and `.pdf` via `/handbook/{id}/download`.
+- [x] **12.1 `HandbookView.tsx`** — topic input, Generate button, progress bar (`paragraphs done / total planned`, running word count), live markdown preview that grows as paragraphs arrive.
+- [x] **12.2 Cancel button** — closes the `EventSource`, server drops the run.
+- [x] **12.3 Download buttons** — `.md` and `.pdf` via `/handbook/{id}/download`.
 - Acceptance: full run for "Handbook on RAG" with the assignment PDFs streams to completion, preview shows TOC + headings, downloads work.
 
 ### Verify Phase 12

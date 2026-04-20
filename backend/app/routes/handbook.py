@@ -87,7 +87,7 @@ async def handbook_sse(
 
         async def on_event(payload: dict[str, object]) -> bool:
             if await request.is_disconnected():
-                logger.warning("client disconnected during handbook stream")
+                logger.info("handbook run cancelled (client disconnected)")
                 return False
             await queue.put(payload)
             return True
