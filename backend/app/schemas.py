@@ -43,3 +43,16 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=32000)
     history: list[ChatMessage] = Field(default_factory=list, max_length=50)
+
+
+class HandbookRequest(BaseModel):
+    topic: str = Field(min_length=1, max_length=8000)
+    document_ids: list[UUID] | None = None
+
+
+class HandbookOut(BaseModel):
+    id: UUID
+    topic: str
+    words: int
+    path: str
+    created_at: datetime

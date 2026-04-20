@@ -106,7 +106,9 @@ async def upload_pdfs(
         try:
             await insert_document(extracted.text, doc_id_str)
         except Exception:
-            logger.exception("LightRAG ingest failed for %s doc_id=%s", name, doc_id_str)
+            logger.exception(
+                "LightRAG ingest failed for %s doc_id=%s", name, doc_id_str
+            )
             async with pool.acquire() as conn:
                 await conn.execute("DELETE FROM documents WHERE id = $1", ins["id"])
             raise HTTPException(

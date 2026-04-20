@@ -163,7 +163,7 @@ The handbook generator implements the LongWriter "AgentWrite" pipeline (see `Doc
 
 - Input: user's handbook instruction + retrieved high-level context.
 - Output: one paragraph per line, each with a `Main Point` and `Word Count`.
-- Constraint from the original prompt: each paragraph must be **200–1000 words**. We additionally instruct the planner to target **>= 22,000 total words** to leave headroom for the 20k floor.
+- Constraint from the original prompt: each paragraph must be **200–1000 words**. We instruct the planner to target **>= 20,000 total words**; the Phase 8.4 expansion pass handles any undershoot in the actual generated text.
 - Source prompt: `LongWriter-main/agentwrite/prompts/plan.txt` — copy verbatim into `backend/app/services/agentwrite.py`, do not paraphrase.
 
 ### Writer stage

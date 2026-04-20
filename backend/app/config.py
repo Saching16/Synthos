@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     supabase_service_key: str | None = None
 
     lightrag_working_dir: str = ".lightrag"
+    handbooks_dir: str = ".handbooks"
 
     cors_origins: str = "http://localhost:5173"
 
@@ -94,6 +95,10 @@ class Settings(BaseSettings):
     @property
     def lightrag_working_path(self) -> Path:
         return Path(self.lightrag_working_dir).resolve()
+
+    @property
+    def handbooks_path(self) -> Path:
+        return Path(self.handbooks_dir).resolve()
 
     @property
     def lightrag_postgres_dsn(self) -> str | None:

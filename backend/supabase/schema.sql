@@ -14,3 +14,11 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_sha256 ON documents (sha256);
+
+CREATE TABLE IF NOT EXISTS handbooks (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    topic text NOT NULL,
+    words int NOT NULL,
+    path text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);

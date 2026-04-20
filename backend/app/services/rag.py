@@ -53,6 +53,7 @@ def _install_pgvector_extensions_schema_patch() -> None:
     # And rebind the name LightRAG's Postgres backend captured via `from pgvector.asyncpg import register_vector`.
     try:
         from lightrag.kg import postgres_impl as _lrpg
+
         _lrpg.register_vector = _register_vector_public_or_extensions
     except ImportError:
         pass
@@ -487,11 +488,66 @@ async def delete_document_by_id(doc_id: str) -> None:
         logger.exception("LightRAG adelete_by_doc_id failed for doc_id=%s", doc_id)
 
 
+async def _scoped_chunks_context(question: str, doc_ids: list[str]) -> str:
+    """Vector search over chunk rows restricted to ``full_doc_id`` in ``doc_ids``."""
+    rag = await get_rag()
+    cv = rag.chunks_vdb
+    db = cv.db
+    if db is None:
+        return ""
+    emb = await _openrouter_embed([question.strip()])
+    embedding = emb[0].tolist()
+    embedding_string = ",".join(map(str, embedding))
+    vector_cast = (
+        "halfvec"
+        if getattr(db, "vector_index_type", None) == "HNSW_HALFVEC"
+        else "vector"
+    )
+    table = cv.table_name
+    dist_threshold = 1.0 - cv.cosine_better_than_threshold
+    top_k = 40
+    sql = f"""
+SELECT c.content
+FROM {table} c
+WHERE c.workspace = $1
+  AND c.full_doc_id = ANY($2::varchar[])
+  AND c.content_vector <=> '[{embedding_string}]'::{vector_cast} < $3
+ORDER BY c.content_vector <=> '[{embedding_string}]'::{vector_cast}
+LIMIT $4
+"""
+    rows = await db.query(
+        sql,
+        [cv.workspace, doc_ids, dist_threshold, top_k],
+        multirows=True,
+    )
+    if not rows:
+        return ""
+    parts: list[str] = []
+    for row in rows:
+        if isinstance(row, dict):
+            c = (row.get("content") or "").strip()
+        else:
+            c = ""
+        if c:
+            parts.append(c)
+    return "\n\n".join(parts)
+
+
 async def query(
     question: str,
     mode: str = "hybrid",
     only_need_context: bool = False,
+    doc_ids: list[str] | None = None,
 ) -> str | AsyncIterator[str]:
+    ids = [x.strip() for x in doc_ids] if doc_ids else []
+    if ids:
+        scoped = await _scoped_chunks_context(question, ids)
+        if scoped.strip():
+            return scoped
+        logger.warning(
+            "Scoped retrieval returned no chunks for doc_ids=%s; falling back to global query",
+            ids[:5],
+        )
     rag = await get_rag()
     param = QueryParam(mode=mode, only_need_context=only_need_context)
     return await rag.aquery(question, param=param)
