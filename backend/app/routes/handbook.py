@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
@@ -22,20 +21,11 @@ from app.config import get_settings
 from app.db import get_pool
 from app.schemas import HandbookOut, HandbookRequest
 from app.services.agentwrite import generate_handbook
-from app.services.rag import query as rag_query
+from app.services.rag import handbook_context
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["handbook"])
-
-
-async def _normalize_rag_output(raw: str | AsyncIterator[str]) -> str:
-    if isinstance(raw, str):
-        return raw
-    parts: list[str] = []
-    async for piece in raw:
-        parts.append(piece)
-    return "".join(parts)
 
 
 async def _ensure_documents_exist(pool: asyncpg.Pool, doc_ids: list[UUID]) -> None:
@@ -74,13 +64,7 @@ async def handbook_sse(
     hb_id = uuid4()
 
     async def retrieve(q: str) -> str:
-        raw = await rag_query(
-            q,
-            mode="hybrid",
-            only_need_context=True,
-            doc_ids=doc_id_strs,
-        )
-        return await _normalize_rag_output(raw)
+        return await handbook_context(q, doc_id_strs)
 
     async def event_gen():
         queue: asyncio.Queue[dict | None] = asyncio.Queue()

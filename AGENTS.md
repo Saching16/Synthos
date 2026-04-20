@@ -30,6 +30,7 @@ It is the deliverable for the **LunarTech AI Engineering Assignment** (`AI-Engin
 | Graph storage    | LightRAG default NetworkX JSON in `working_dir/`         | Supabase has no Apache AGE                                  |
 | PDF parsing      | `pypdf` primary, `pdfplumber` fallback                   |                                                             |
 | Streaming        | Server-Sent Events (SSE) for chat + handbook             | `EventSource` on the client                                 |
+| Handbook sources | `handbook_context()` joins LightRAG chunks → `documents` | Ingested text includes `<<PAGE n>>` markers; citation links use `API_PUBLIC_URL` + `GET /documents/{id}/page/{n}` |
 
 Do **not** silently swap any of these without updating both `AGENTS.md` and `docs/PLAN.md`.
 

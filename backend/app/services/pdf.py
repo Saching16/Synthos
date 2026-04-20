@@ -17,7 +17,10 @@ CHAR_FALLBACK_THRESHOLD = 30
 
 
 class ExtractedDoc(BaseModel):
+    """``text`` is what LightRAG ingests (includes ``<<PAGE n>>`` markers)."""
+
     text: str
+    page_texts: list[str]
     pages: int = Field(ge=0)
     char_count: int = Field(ge=0)
 
@@ -83,9 +86,18 @@ def extract_text(file_bytes: bytes) -> ExtractedDoc:
     page_texts, pages = _extract_page_texts(file_bytes)
     strip_norms = _repeated_line_norms(page_texts)
     cleaned_pages = [_strip_lines(p, strip_norms) for p in page_texts]
-    parts = [p.strip() for p in cleaned_pages if p.strip()]
-    full = "\n\n".join(parts).strip()
-    return ExtractedDoc(text=full, pages=pages, char_count=len(full))
+    stored_pages = [p.strip() for p in cleaned_pages]
+    blocks: list[str] = []
+    for i, page in enumerate(stored_pages, start=1):
+        blocks.append(f"<<PAGE {i}>>\n{page}")
+    full = "\n\n".join(blocks).strip()
+    plain = "\n\n".join(p for p in stored_pages if p).strip()
+    return ExtractedDoc(
+        text=full,
+        page_texts=stored_pages,
+        pages=pages,
+        char_count=len(plain) if plain else 0,
+    )
 
 
 def main() -> None:

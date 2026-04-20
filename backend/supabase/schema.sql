@@ -10,10 +10,15 @@ CREATE TABLE IF NOT EXISTS documents (
     sha256 text NOT NULL,
     pages int NOT NULL,
     char_count int NOT NULL,
+    -- Per-page plain text (0-based index = PDF page 1); used for citation viewer
+    page_texts jsonb,
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_sha256 ON documents (sha256);
+
+-- Idempotent upgrade for databases created before page_texts existed
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS page_texts jsonb;
 
 CREATE TABLE IF NOT EXISTS handbooks (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

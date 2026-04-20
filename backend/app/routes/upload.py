@@ -92,14 +92,15 @@ async def upload_pdfs(
         async with pool.acquire() as conn:
             ins = await conn.fetchrow(
                 """
-                INSERT INTO documents (filename, sha256, pages, char_count)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO documents (filename, sha256, pages, char_count, page_texts)
+                VALUES ($1, $2, $3, $4, $5::jsonb)
                 RETURNING id, filename, pages, char_count
                 """,
                 name,
                 digest,
                 extracted.pages,
                 extracted.char_count,
+                extracted.page_texts,
             )
         assert ins is not None
         doc_id_str = str(ins["id"])

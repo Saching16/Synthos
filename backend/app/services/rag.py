@@ -488,6 +488,21 @@ async def delete_document_by_id(doc_id: str) -> None:
         logger.exception("LightRAG adelete_by_doc_id failed for doc_id=%s", doc_id)
 
 
+_PAGE_MARK_RE = re.compile(r"<<PAGE (\d+)>>\n?")
+
+
+def _page_span_from_chunk(content: str) -> tuple[int, int] | None:
+    nums = [int(x) for x in _PAGE_MARK_RE.findall(content)]
+    if not nums:
+        return None
+    return min(nums), max(nums)
+
+
+def _strip_page_markers(content: str) -> str:
+    t = _PAGE_MARK_RE.sub("", content)
+    return re.sub(r"\n{3,}", "\n\n", t).strip()
+
+
 async def _scoped_chunks_context(question: str, doc_ids: list[str]) -> str:
     """Vector search over chunk rows restricted to ``full_doc_id`` in ``doc_ids``."""
     rag = await get_rag()
@@ -529,8 +544,131 @@ LIMIT $4
         else:
             c = ""
         if c:
-            parts.append(c)
+            parts.append(_strip_page_markers(c))
     return "\n\n".join(parts)
+
+
+def _normalize_handbook_rows(rows: object) -> list[dict[str, str]]:
+    if not rows:
+        return []
+    out: list[dict[str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        c = (row.get("content") or "").strip()
+        if not c:
+            continue
+        fname = (row.get("filename") or "").strip() or "document"
+        doc_id = (row.get("doc_id") or "").strip()
+        if not doc_id:
+            continue
+        out.append({"content": c, "filename": fname, "doc_id": doc_id})
+    return out
+
+
+async def _handbook_chunk_rows(
+    question: str,
+    doc_ids: list[str] | None,
+) -> list[dict[str, str]]:
+    """Vector chunks joined to ``documents`` for filename + stable UUID links."""
+    rag = await get_rag()
+    cv = rag.chunks_vdb
+    db = cv.db
+    if db is None:
+        return []
+    emb = await _openrouter_embed([question.strip()])
+    embedding = emb[0].tolist()
+    embedding_string = ",".join(map(str, embedding))
+    vector_cast = (
+        "halfvec"
+        if getattr(db, "vector_index_type", None) == "HNSW_HALFVEC"
+        else "vector"
+    )
+    table = cv.table_name
+    dist_threshold = 1.0 - cv.cosine_better_than_threshold
+    top_k = 40
+    if doc_ids:
+        sql = f"""
+SELECT c.content, d.filename::text AS filename, d.id::text AS doc_id
+FROM {table} c
+INNER JOIN documents d ON d.id::text = c.full_doc_id
+WHERE c.workspace = $1
+  AND c.full_doc_id = ANY($2::varchar[])
+  AND c.content_vector <=> '[{embedding_string}]'::{vector_cast} < $3
+ORDER BY c.content_vector <=> '[{embedding_string}]'::{vector_cast}
+LIMIT $4
+"""
+        rows = await db.query(
+            sql,
+            [cv.workspace, doc_ids, dist_threshold, top_k],
+            multirows=True,
+        )
+    else:
+        sql = f"""
+SELECT c.content, d.filename::text AS filename, d.id::text AS doc_id
+FROM {table} c
+INNER JOIN documents d ON d.id::text = c.full_doc_id
+WHERE c.workspace = $1
+  AND c.content_vector <=> '[{embedding_string}]'::{vector_cast} < $2
+ORDER BY c.content_vector <=> '[{embedding_string}]'::{vector_cast}
+LIMIT $3
+"""
+        rows = await db.query(
+            sql,
+            [cv.workspace, dist_threshold, top_k],
+            multirows=True,
+        )
+    return _normalize_handbook_rows(rows)
+
+
+def format_handbook_context(rows: list[dict[str, str]]) -> str:
+    """Human + model-facing context with markdown links to ``/documents/{{id}}/page/{{n}}``."""
+    if not rows:
+        return ""
+    base = get_settings().api_public_url.rstrip("/")
+    intro = (
+        "Retrieved excerpts below. Each block has a **Citation** line with a markdown "
+        "link. When you ground claims in these sources, add an **inline** markdown "
+        "link reusing that same URL (same path and query), e.g. "
+        "`([filename, p.2](URL))` after the sentence.\n"
+    )
+    parts: list[str] = [intro]
+    for i, row in enumerate(rows, start=1):
+        raw = row["content"]
+        span = _page_span_from_chunk(raw)
+        body = _strip_page_markers(raw)
+        fname = row["filename"]
+        doc_id = row["doc_id"]
+        if span:
+            lo, hi = span
+            if lo == hi:
+                label = f"p.{lo}"
+                page_for_url = lo
+            else:
+                label = f"pp.{lo}–{hi}"
+                page_for_url = lo
+        else:
+            label = "p.1"
+            page_for_url = 1
+        url = f"{base}/documents/{doc_id}/page/{page_for_url}"
+        cite = f"[{fname}, {label}]({url})"
+        parts.append(f"--- Excerpt {i} ---\n**Citation:** {cite}\n\n{body}\n")
+    return "\n".join(parts).strip()
+
+
+async def handbook_context(
+    question: str,
+    doc_ids: list[str] | None,
+) -> str:
+    """Handbook-only retrieval: excerpts + inline-citation URLs (joins ``documents``)."""
+    ids = [x.strip() for x in doc_ids] if doc_ids else []
+    if ids:
+        scoped = await _handbook_chunk_rows(question, ids)
+        if not scoped:
+            scoped = await _handbook_chunk_rows(question, None)
+    else:
+        scoped = await _handbook_chunk_rows(question, None)
+    return format_handbook_context(scoped)
 
 
 async def query(

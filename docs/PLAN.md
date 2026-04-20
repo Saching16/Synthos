@@ -462,7 +462,7 @@ Goal: live progress + final document.
 - [ ] Per-user sessions (currently single-tenant).
 - [ ] Background job queue (Celery / RQ) so handbook runs survive page reloads.
 - [x] Caching plan + write step responses by `(instruction, plan, step)` hash to cut re-run cost.
-- [ ] Inline citation links in the handbook back to PDF page numbers (LightRAG returns chunk ids; map to source pages).
+- [x] Inline citation links in the handbook back to PDF page numbers (LightRAG returns chunk ids; map to source pages).
 - [ ] Auth (Supabase Auth) for multi-user demo.
 
 ---

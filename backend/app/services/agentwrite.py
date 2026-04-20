@@ -33,7 +33,7 @@ _EXPAND_PROMPT = """You are extending an existing handbook paragraph with additi
 ## Existing paragraph (for context only — do NOT repeat any of it)
 $PARA$
 
-## Retrieval context (cite document titles inline when used)
+## Retrieval context (cite using inline markdown links copied from each **Citation** line’s URL when you use that excerpt)
 $CONTEXT$
 
 Write ONLY the additional sentences that should be appended to the existing paragraph. Add at least $TARGET$ new words. Match the existing paragraph's tone. Do not restate sentences that already appear above. Do not output labels such as "Paragraph", "Main Point:", "Word Count:", or bullet markers."""

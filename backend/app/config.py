@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     agentwrite_cache_enabled: bool = True
 
     cors_origins: str = "http://localhost:5173"
+    # Base URL for markdown citation links in handbooks (GET /documents/{id}/page/{n}).
+    api_public_url: str = "http://localhost:8000"
 
     log_level: str = "INFO"
 
