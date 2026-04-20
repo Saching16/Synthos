@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiUrl, fetchHealth } from './api'
+import { Chat } from './components/Chat'
 import { DocumentList } from './components/DocumentList'
 import { Uploader } from './components/Uploader'
 
@@ -7,6 +8,9 @@ function App() {
   const [health, setHealth] = useState<string>('…')
   const [error, setError] = useState<string | null>(null)
   const [docRefresh, setDocRefresh] = useState(0)
+  const [handbookTopic, setHandbookTopic] = useState('')
+  const [handbookFlash, setHandbookFlash] = useState(false)
+  const handbookRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     fetchHealth()
@@ -14,6 +18,15 @@ function App() {
       .catch((e: unknown) =>
         setError(e instanceof Error ? e.message : 'Health check failed'),
       )
+  }, [])
+
+  const onHandbookRedirect = useCallback((topic: string) => {
+    setHandbookTopic(topic)
+    setHandbookFlash(true)
+    window.setTimeout(() => setHandbookFlash(false), 2400)
+    window.setTimeout(() => {
+      handbookRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 100)
   }, [])
 
   return (
@@ -43,21 +56,36 @@ function App() {
             <DocumentList refreshVersion={docRefresh} />
           </div>
         </section>
-        <section className="flex min-h-[200px] flex-col bg-slate-950 p-4">
-          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+        <section className="flex min-h-[320px] flex-col bg-slate-950 p-4 md:min-h-0">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
             Chat
           </h2>
-          <p className="text-sm text-slate-400">
-            RAG chat will appear here.
-          </p>
+          <Chat onHandbookRedirect={onHandbookRedirect} />
         </section>
-        <section className="flex min-h-[200px] flex-col bg-slate-950 p-4">
-          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+        <section
+          ref={handbookRef}
+          className={`flex min-h-[200px] flex-col bg-slate-950 p-4 transition-shadow md:min-h-0 ${
+            handbookFlash ? 'ring-2 ring-sky-500 ring-offset-2 ring-offset-slate-950' : ''
+          }`}
+        >
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
             Handbook
           </h2>
-          <p className="text-sm text-slate-400">
-            Long-form handbook generation will appear here.
+          <p className="mb-3 text-xs text-slate-500">
+            Generation UI arrives in Phase 12. Topic below is filled when chat
+            detects a handbook request.
           </p>
+          <label className="mb-1 block text-xs font-medium text-slate-400" htmlFor="hb-topic">
+            Topic
+          </label>
+          <input
+            id="hb-topic"
+            type="text"
+            value={handbookTopic}
+            onChange={(e) => setHandbookTopic(e.target.value)}
+            placeholder="e.g. Handbook on Retrieval-Augmented Generation"
+            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-sky-600 focus:outline-none"
+          />
         </section>
       </div>
     </div>

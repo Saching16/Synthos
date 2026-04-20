@@ -79,6 +79,60 @@ export function uploadPdfs(
   })
 }
 
+export type ChatHistoryItem = { role: string; content: string }
+
+export type ChatSseCallbacks = {
+  onToken?: (text: string) => void
+  onDone?: () => void
+  onRedirect?: (payload: { path: string; topic: string; message?: string }) => void
+  onError?: (message: string) => void
+}
+
+/**
+ * POST `/chat` (SSE): `token` deltas, `done`, optional `redirect`, `error`.
+ */
+export async function openChatSse(
+  body: { message: string; history: ChatHistoryItem[] },
+  callbacks: ChatSseCallbacks,
+  signal?: AbortSignal,
+): Promise<void> {
+  return openSse(
+    '/chat',
+    body,
+    {
+      onEvent: (eventType, data) => {
+        try {
+          if (eventType === 'token') {
+            const j = JSON.parse(data) as { text?: string }
+            if (j.text) callbacks.onToken?.(j.text)
+            return
+          }
+          if (eventType === 'done') {
+            callbacks.onDone?.()
+            return
+          }
+          if (eventType === 'redirect') {
+            const j = JSON.parse(data) as {
+              path: string
+              topic: string
+              message?: string
+            }
+            callbacks.onRedirect?.(j)
+            return
+          }
+          if (eventType === 'error') {
+            const j = JSON.parse(data) as { message?: string }
+            callbacks.onError?.(j.message ?? 'Chat request failed')
+          }
+        } catch {
+          callbacks.onError?.('Malformed server event')
+        }
+      },
+    },
+    signal,
+  )
+}
+
 export type SseHandlers = {
   onOpen?: () => void
   onEvent?: (eventType: string, data: string) => void

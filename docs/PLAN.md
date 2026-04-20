@@ -395,9 +395,9 @@ Goal: drag-drop upload + list.
 
 Goal: streaming chat with grounded answers.
 
-- [ ] **11.1 `Chat.tsx`** — message list (markdown-rendered assistant), input box, send-on-enter, history kept in component state.
-- [ ] **11.2 SSE consumer** — `openSse('/chat', body, {token, done, redirect, error})` updates the in-flight assistant message token-by-token.
-- [ ] **11.3 Redirect to handbook** — on `redirect` event, switch to the Handbook panel pre-filled with the topic.
+- [x] **11.1 `Chat.tsx`** — message list (markdown-rendered assistant), input box, send-on-enter, history kept in component state.
+- [x] **11.2 SSE consumer** — `openSse('/chat', body, {token, done, redirect, error})` updates the in-flight assistant message token-by-token.
+- [x] **11.3 Redirect to handbook** — on `redirect` event, switch to the Handbook panel pre-filled with the topic.
 - Acceptance: ask a factual question about an uploaded PDF, get a grounded streamed answer; ask for a handbook, get redirected.
 
 ### Verify Phase 11
