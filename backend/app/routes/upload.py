@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 
 import asyncpg
+from asyncpg.exceptions import UndefinedColumnError
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.db import get_pool
@@ -90,18 +92,35 @@ async def upload_pdfs(
             continue
 
         async with pool.acquire() as conn:
-            ins = await conn.fetchrow(
-                """
-                INSERT INTO documents (filename, sha256, pages, char_count, page_texts)
-                VALUES ($1, $2, $3, $4, $5::jsonb)
-                RETURNING id, filename, pages, char_count
-                """,
-                name,
-                digest,
-                extracted.pages,
-                extracted.char_count,
-                extracted.page_texts,
-            )
+            try:
+                ins = await conn.fetchrow(
+                    """
+                    INSERT INTO documents (filename, sha256, pages, char_count, page_texts)
+                    VALUES ($1, $2, $3, $4, $5::jsonb)
+                    RETURNING id, filename, pages, char_count
+                    """,
+                    name,
+                    digest,
+                    extracted.pages,
+                    extracted.char_count,
+                    json.dumps(extracted.page_texts, ensure_ascii=False),
+                )
+            except UndefinedColumnError:
+                logger.warning(
+                    "documents.page_texts missing — run supabase/schema.sql (ALTER). "
+                    "Ingesting without per-page storage (citation viewer disabled until migrated)."
+                )
+                ins = await conn.fetchrow(
+                    """
+                    INSERT INTO documents (filename, sha256, pages, char_count)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING id, filename, pages, char_count
+                    """,
+                    name,
+                    digest,
+                    extracted.pages,
+                    extracted.char_count,
+                )
         assert ins is not None
         doc_id_str = str(ins["id"])
         try:

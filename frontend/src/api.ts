@@ -68,13 +68,29 @@ export function uploadPdfs(
         resolve(xhr.response as UploadResult[])
         return
       }
-      const msg =
-        typeof xhr.response === 'object' && xhr.response && 'detail' in xhr.response
-          ? String((xhr.response as { detail: unknown }).detail)
-          : xhr.responseText || xhr.statusText
+      let msg = xhr.responseText || xhr.statusText
+      if (typeof xhr.response === 'object' && xhr.response && 'detail' in xhr.response) {
+        const d = (xhr.response as { detail: unknown }).detail
+        msg = typeof d === 'string' ? d : JSON.stringify(d)
+      } else if (!msg.trim()) {
+        try {
+          const j = JSON.parse(xhr.responseText) as { detail?: unknown }
+          if (j.detail != null) {
+            msg =
+              typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail)
+          }
+        } catch {
+          /* keep msg */
+        }
+      }
       reject(new Error(`Upload failed: ${xhr.status} ${msg}`))
     }
-    xhr.onerror = () => reject(new Error('Upload failed: network error'))
+    xhr.onerror = () =>
+      reject(
+        new Error(
+          'Upload failed: network error (check API is running and VITE_API_BASE matches it)',
+        ),
+      )
     xhr.send(fd)
   })
 }
