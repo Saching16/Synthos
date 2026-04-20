@@ -77,6 +77,8 @@ async def create_pool(dsn: str) -> asyncpg.Pool:
         "min_size": 1,
         "max_size": 10,
         "statement_cache_size": 0,
+        # Avoid hung clients when Supabase or the network stalls mid-query.
+        "command_timeout": 60,
     }
     if ssl_ctx is not None:
         kw["ssl"] = ssl_ctx

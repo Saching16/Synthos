@@ -195,14 +195,14 @@ Goal: a singleton LightRAG instance using Supabase for KV+vectors, OpenRouter fo
 
 Goal: PDFs flow from frontend bytes into LightRAG and into the `documents` table.
 
-- [ ] **6.1 `POST /upload`**
+- [x] **6.1 `POST /upload`**
   - Multipart endpoint, accepts 1+ files. For each: extract → hash → check `documents.sha256` → insert row → call `insert_document`.
   - Returns array of `{id, filename, pages, char_count, status: "ingested"|"duplicate"}`.
   - Acceptance: uploading the same PDF twice returns `duplicate` the second time and does **not** re-embed.
-- [ ] **6.2 `GET /documents`**
+- [x] **6.2 `GET /documents`**
   - Lists rows from `documents` ordered by `created_at desc`.
   - Acceptance: matches what was uploaded.
-- [ ] **6.3 `DELETE /documents/{id}` (optional)**
+- [x] **6.3 `DELETE /documents/{id}` (optional)**
   - Removes row + best-effort LightRAG delete (`rag.adelete_by_doc_id`).
   - Acceptance: list shrinks; subsequent queries don't surface that doc.
 

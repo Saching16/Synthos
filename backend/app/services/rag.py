@@ -475,6 +475,18 @@ async def insert_document(text: str, doc_id: str) -> None:
     await rag.ainsert(text, ids=[doc_id])
 
 
+async def delete_document_by_id(doc_id: str) -> None:
+    """Best-effort LightRAG removal for ``doc_id`` (same id used with ``ainsert``)."""
+    async with _init_lock:
+        rag = _rag
+    if rag is None:
+        return
+    try:
+        await rag.adelete_by_doc_id(doc_id)
+    except Exception:
+        logger.exception("LightRAG adelete_by_doc_id failed for doc_id=%s", doc_id)
+
+
 async def query(
     question: str,
     mode: str = "hybrid",
