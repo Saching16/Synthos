@@ -31,8 +31,8 @@ function App() {
   }, [])
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 px-4 py-3">
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-950 text-slate-100">
+      <header className="shrink-0 border-b border-slate-800 px-4 py-3">
         <h1 className="text-lg font-semibold tracking-tight">
           Handbook Generator
         </h1>
@@ -47,32 +47,38 @@ function App() {
           </span>
         </p>
       </header>
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-px bg-slate-800 md:grid-cols-3">
-        <section className="flex min-h-[280px] flex-col bg-slate-950 p-4 md:min-h-0">
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-px bg-slate-800 md:grid-cols-3 md:grid-rows-1">
+        <section className="flex min-h-[280px] flex-col overflow-hidden bg-slate-950 p-4 md:h-full md:min-h-0">
+          <h2 className="mb-3 shrink-0 text-sm font-medium uppercase tracking-wide text-slate-500">
             Documents
           </h2>
-          <Uploader onUploaded={() => setDocRefresh((v) => v + 1)} />
-          <div className="mt-4 min-h-0 flex-1 border-t border-slate-800 pt-4">
+          <div className="shrink-0">
+            <Uploader onUploaded={() => setDocRefresh((v) => v + 1)} />
+          </div>
+          <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-slate-800 pt-4">
             <DocumentList refreshVersion={docRefresh} />
           </div>
         </section>
-        <section className="flex min-h-[320px] flex-col bg-slate-950 p-4 md:min-h-0">
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
+        <section className="flex min-h-[320px] flex-col overflow-hidden bg-slate-950 p-4 md:h-full md:min-h-0">
+          <h2 className="mb-3 shrink-0 text-sm font-medium uppercase tracking-wide text-slate-500">
             Chat
           </h2>
-          <Chat onHandbookRedirect={onHandbookRedirect} />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Chat onHandbookRedirect={onHandbookRedirect} />
+          </div>
         </section>
         <section
           ref={handbookRef}
-          className={`flex min-h-0 min-h-[320px] flex-col bg-slate-950 p-4 transition-shadow md:min-h-0 ${
+          className={`flex min-h-[320px] flex-col overflow-hidden bg-slate-950 p-4 transition-shadow md:h-full md:min-h-0 ${
             handbookFlash ? 'ring-2 ring-sky-500 ring-offset-2 ring-offset-slate-950' : ''
           }`}
         >
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
+          <h2 className="mb-3 shrink-0 text-sm font-medium uppercase tracking-wide text-slate-500">
             Handbook
           </h2>
-          <HandbookView topic={handbookTopic} onTopicChange={setHandbookTopic} />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <HandbookView topic={handbookTopic} onTopicChange={setHandbookTopic} />
+          </div>
         </section>
       </div>
     </div>

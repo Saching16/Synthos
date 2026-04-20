@@ -81,7 +81,7 @@ export function DocumentList({ refreshVersion = 0 }: Props) {
         <p className="text-sm text-slate-500">No documents yet. Upload a PDF above.</p>
       ) : null}
       {docs.length > 0 ? (
-        <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+        <ul className="scroll-pane min-h-0 flex-1 space-y-2 pr-1">
           {docs.map((d) => (
             <li
               key={d.id}

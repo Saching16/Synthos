@@ -55,6 +55,7 @@ backend/
       llm.py             # LlmClient: chat complete + stream, retries, token/latency logs
       openrouter.py      # AsyncOpenAI client for OpenRouter (chat + embeddings)
       agentwrite.py      # plan() + write_segments() with $CONTEXT$ injection
+      agentwrite_llm_cache.py  # optional disk cache for plan/write/expand (see AGENTWRITE_CACHE_ENABLED)
   supabase/schema.sql    # pgvector extension + LightRAG tables + documents table
   requirements.txt
   .env.example

@@ -78,6 +78,9 @@ class Settings(BaseSettings):
 
     lightrag_working_dir: str = ".lightrag"
     handbooks_dir: str = ".handbooks"
+    # When true, plan/write/expand LLM responses are stored under
+    # ``{handbooks_dir}/.agentwrite_cache`` keyed by prompt + model + context.
+    agentwrite_cache_enabled: bool = True
 
     cors_origins: str = "http://localhost:5173"
 
@@ -87,6 +90,11 @@ class Settings(BaseSettings):
     @classmethod
     def log_level_upper(cls, v: str) -> str:
         return v.upper()
+
+    @field_validator("agentwrite_cache_enabled", mode="before")
+    @classmethod
+    def _coerce_agentwrite_cache_enabled(cls, v: object) -> bool:
+        return _env_bool(v)
 
     @property
     def cors_origin_list(self) -> list[str]:

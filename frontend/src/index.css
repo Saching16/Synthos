@@ -6,5 +6,32 @@ body {
 }
 
 #root {
-  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+/* Visible scrollbars in scroll areas (macOS overlay + stable gutter) */
+.scroll-pane {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(71 85 105) rgb(15 23 42);
+}
+
+.scroll-pane::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scroll-pane::-webkit-scrollbar-track {
+  background: rgb(15 23 42);
+  border-radius: 6px;
+}
+
+.scroll-pane::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);
+  border-radius: 6px;
+  border: 2px solid rgb(15 23 42);
 }

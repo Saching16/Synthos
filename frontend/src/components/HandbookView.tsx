@@ -61,11 +61,47 @@ const mdComponents = {
   ),
 }
 
-function buildPreviewMd(topic: string, bodies: (string | undefined)[]): string {
-  const t = topic.trim() || 'Handbook'
-  const parts = bodies.filter((x): x is string => Boolean(x && x.trim()))
-  if (!parts.length) return `_Generating…_\n`
-  return `# ${t}\n\n${parts.join('\n\n')}\n`
+/** Sections at least this long are collapsed until “Read more” is used. */
+const SECTION_COLLAPSE_MIN_CHARS = 360
+
+function HandbookPreviewSection({
+  markdown,
+  sectionIndex,
+  expanded,
+  onToggle,
+}: {
+  markdown: string
+  sectionIndex: number
+  expanded: boolean
+  onToggle: (sectionIndex: number) => void
+}) {
+  const needsToggle = markdown.length >= SECTION_COLLAPSE_MIN_CHARS
+  return (
+    <article className="border-b border-slate-800/70 py-3 first:pt-0 last:border-b-0 last:pb-0">
+      <div
+        className={
+          needsToggle && !expanded
+            ? 'max-h-56 overflow-hidden [mask-image:linear-gradient(to_bottom,black_72%,transparent)]'
+            : ''
+        }
+      >
+        <div className="[&_a]:text-sky-400 [&_a]:underline">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {markdown}
+          </ReactMarkdown>
+        </div>
+      </div>
+      {needsToggle ? (
+        <button
+          type="button"
+          onClick={() => onToggle(sectionIndex)}
+          className="mt-2 text-xs font-medium text-sky-400 hover:text-sky-300"
+        >
+          {expanded ? 'Show less' : 'Read more'}
+        </button>
+      ) : null}
+    </article>
+  )
 }
 
 export function HandbookView({ topic, onTopicChange }: Props) {
@@ -80,6 +116,9 @@ export function HandbookView({ topic, onTopicChange }: Props) {
   const [bodies, setBodies] = useState<(string | undefined)[]>([])
   const [doneId, setDoneId] = useState<string | null>(null)
   const [doneWords, setDoneWords] = useState(0)
+  const [expandedSections, setExpandedSections] = useState<Set<number>>(
+    () => new Set(),
+  )
   const previewRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const runLockRef = useRef(false)
@@ -124,6 +163,7 @@ export function HandbookView({ topic, onTopicChange }: Props) {
     setBodies([])
     setDoneId(null)
     setDoneWords(0)
+    setExpandedSections(new Set())
 
     const payload: { topic: string; document_ids?: string[] } = { topic: t }
     if (selectedIds.size > 0) {
@@ -186,7 +226,23 @@ export function HandbookView({ topic, onTopicChange }: Props) {
   const pct =
     planTotal > 0 ? Math.min(100, Math.round((100 * maxIdx) / planTotal)) : 0
 
-  const previewMd = buildPreviewMd(topic, bodies)
+  const title = topic.trim() || 'Handbook'
+  const sectionEntries = bodies
+    .map((body, index) =>
+      typeof body === 'string' && body.trim().length > 0
+        ? { index, text: body.trim() }
+        : null,
+    )
+    .filter((x): x is { index: number; text: string } => x !== null)
+
+  const toggleSectionExpanded = (sectionIndex: number) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(sectionIndex)) next.delete(sectionIndex)
+      else next.add(sectionIndex)
+      return next
+    })
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -208,7 +264,7 @@ export function HandbookView({ topic, onTopicChange }: Props) {
             <legend className="px-1 text-xs text-slate-500">
               Optional: limit retrieval to selected PDFs (empty = all ingested)
             </legend>
-            <ul className="max-h-24 space-y-1 overflow-y-auto text-xs">
+            <ul className="scroll-pane max-h-40 space-y-1 text-xs">
               {docs.map((d) => (
                 <li key={d.id} className="flex items-center gap-2">
                   <input
@@ -292,19 +348,32 @@ export function HandbookView({ topic, onTopicChange }: Props) {
         </div>
       ) : null}
 
-      <div className="flex min-h-[200px] flex-1 flex-col md:min-h-[280px]">
-        <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <h3 className="mb-1 shrink-0 text-xs font-medium uppercase tracking-wide text-slate-500">
           Live preview
         </h3>
         <div
           ref={previewRef}
-          className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-sm text-slate-200"
+          className="scroll-pane min-h-0 flex-1 rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-sm text-slate-200"
         >
           <div className="[&_a]:text-sky-400 [&_a]:underline">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {previewMd}
+              {`# ${title}`}
             </ReactMarkdown>
           </div>
+          {sectionEntries.length === 0 ? (
+            <p className="mt-2 text-sm italic text-slate-500">Generating…</p>
+          ) : (
+            sectionEntries.map(({ index, text }) => (
+              <HandbookPreviewSection
+                key={index}
+                sectionIndex={index}
+                markdown={`## Section ${index + 1}\n\n${text}`}
+                expanded={expandedSections.has(index)}
+                onToggle={toggleSectionExpanded}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

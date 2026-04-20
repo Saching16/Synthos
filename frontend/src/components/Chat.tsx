@@ -181,7 +181,7 @@ export function Chat({ onHandbookRedirect }: Props) {
           {error}
         </p>
       ) : null}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="scroll-pane min-h-0 flex-1 space-y-3 pr-1">
         {messages.length === 0 ? (
           <p className="text-sm text-slate-500">
             Ask about your uploaded PDFs. For a long handbook, try: &quot;Create a

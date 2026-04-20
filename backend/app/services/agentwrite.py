@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.config import get_settings
+from app.services import agentwrite_llm_cache as llm_cache
 from app.services import rag as rag_service
 from app.services.llm import LlmClient
 
@@ -139,8 +141,14 @@ async def plan(instruction: str) -> list[Step]:
     """Call the LLM with ``plan.txt`` and parse ``Paragraph N - Main Point: …`` lines."""
     template = _read_prompt("plan.txt")
     prompt = template.replace("$INST$", instruction.strip()) + _PLAN_HARDENING
-    llm = LlmClient()
-    raw = await llm.complete(prompt, max_tokens=4096, temperature=0.35)
+    model = get_settings().openrouter_chat_model
+    cached_raw = llm_cache.try_read("plan", model, prompt)
+    if cached_raw is not None:
+        raw = cached_raw
+    else:
+        llm = LlmClient()
+        raw = await llm.complete(prompt, max_tokens=4096, temperature=0.35)
+        llm_cache.store("plan", raw, model, prompt)
     steps: list[Step] = []
     unparsed: list[str] = []
     for line in raw.splitlines():
@@ -197,9 +205,15 @@ async def expand_paragraph(
         .replace("$CONTEXT$", (context or "").strip() or "(No context.)")
         .replace("$TARGET$", str(max(200, int(target_words))))
     )
+    model = get_settings().openrouter_chat_model
+    hit = llm_cache.try_read("expand", model, prompt)
+    if hit is not None:
+        return hit
     llm = LlmClient()
     raw = await llm.complete(prompt, max_tokens=4096, temperature=0.4)
-    return _post_process_paragraph(raw)
+    out = _post_process_paragraph(raw)
+    llm_cache.store("expand", out, model, prompt)
+    return out
 
 
 def _partial_markdown(instruction: str, steps: list[Step], bodies: list[str]) -> str:
