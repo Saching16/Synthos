@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { apiUrl, fetchHealth } from './api'
+import { DocumentList } from './components/DocumentList'
+import { Uploader } from './components/Uploader'
 
 function App() {
   const [health, setHealth] = useState<string>('…')
   const [error, setError] = useState<string | null>(null)
+  const [docRefresh, setDocRefresh] = useState(0)
 
   useEffect(() => {
     fetchHealth()
@@ -31,13 +34,14 @@ function App() {
         </p>
       </header>
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-px bg-slate-800 md:grid-cols-3">
-        <section className="flex min-h-[200px] flex-col bg-slate-950 p-4">
-          <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">
+        <section className="flex min-h-[280px] flex-col bg-slate-950 p-4 md:min-h-0">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-slate-500">
             Documents
           </h2>
-          <p className="text-sm text-slate-400">
-            PDF upload and document list will appear here.
-          </p>
+          <Uploader onUploaded={() => setDocRefresh((v) => v + 1)} />
+          <div className="mt-4 min-h-0 flex-1 border-t border-slate-800 pt-4">
+            <DocumentList refreshVersion={docRefresh} />
+          </div>
         </section>
         <section className="flex min-h-[200px] flex-col bg-slate-950 p-4">
           <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-slate-500">

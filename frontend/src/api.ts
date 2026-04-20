@@ -7,6 +7,78 @@ export function apiUrl(path: string): string {
   return `${base}${p}`
 }
 
+export type UploadResult = {
+  id: string
+  filename: string
+  pages: number
+  char_count: number
+  status: 'ingested' | 'duplicate'
+}
+
+export type Document = {
+  id: string
+  filename: string
+  sha256: string
+  pages: number
+  char_count: number
+  created_at: string
+}
+
+export async function fetchDocuments(): Promise<Document[]> {
+  const res = await fetch(apiUrl('/documents'))
+  if (!res.ok) {
+    const t = await res.text().catch(() => '')
+    throw new Error(`Documents failed: ${res.status} ${t}`)
+  }
+  return res.json() as Promise<Document[]>
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  const res = await fetch(apiUrl(`/documents/${id}`), { method: 'DELETE' })
+  if (res.status === 204) return
+  if (res.status === 404) {
+    throw new Error('Document not found')
+  }
+  const t = await res.text().catch(() => '')
+  throw new Error(`Delete failed: ${res.status} ${t}`)
+}
+
+/**
+ * Multipart POST to `/upload` with optional upload progress (single request, all files).
+ */
+export function uploadPdfs(
+  files: File[],
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<UploadResult[]> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    const fd = new FormData()
+    for (const f of files) {
+      fd.append('files', f, f.name)
+    }
+    xhr.open('POST', apiUrl('/upload'))
+    xhr.responseType = 'json'
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        onProgress?.(ev.loaded, ev.total)
+      }
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(xhr.response as UploadResult[])
+        return
+      }
+      const msg =
+        typeof xhr.response === 'object' && xhr.response && 'detail' in xhr.response
+          ? String((xhr.response as { detail: unknown }).detail)
+          : xhr.responseText || xhr.statusText
+      reject(new Error(`Upload failed: ${xhr.status} ${msg}`))
+    }
+    xhr.onerror = () => reject(new Error('Upload failed: network error'))
+    xhr.send(fd)
+  })
+}
+
 export type SseHandlers = {
   onOpen?: () => void
   onEvent?: (eventType: string, data: string) => void

@@ -377,9 +377,9 @@ Goal: expose the orchestrator over SSE.
 
 Goal: drag-drop upload + list.
 
-- [ ] **10.1 `Uploader.tsx`** — drag-drop + click-to-select, posts multipart to `/upload`, shows per-file progress and result.
-- [ ] **10.2 `DocumentList.tsx`** — polls `/documents`, shows filename, pages, ingested-at, delete button.
-- [ ] **10.3 Wire into `App.tsx` left rail.**
+- [x] **10.1 `Uploader.tsx`** — drag-drop + click-to-select, posts multipart to `/upload`, shows per-file progress and result.
+- [x] **10.2 `DocumentList.tsx`** — polls `/documents`, shows filename, pages, ingested-at, delete button.
+- [x] **10.3 Wire into `App.tsx` left rail.**
 - Acceptance: uploading 1–3 PDFs surfaces them in the list, duplicates are flagged.
 
 ### Verify Phase 10
