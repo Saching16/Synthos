@@ -246,8 +246,18 @@ async def generate_handbook(
     *,
     retrieve_context: RetrieveContext | None = None,
 ) -> str:
-    """Plan → write all paragraphs (RAG per step) → optional expansion → markdown + TOC."""
+    """Plan → write all paragraphs (RAG per step) → optional expansion → markdown + TOC.
+
+    The planner LLM always finishes before any writer call: ``await plan(...)`` runs to
+    completion, clients get ``planning`` then ``plan_ready`` (with full outline text),
+    and only then does the loop call ``write_step`` / RAG per paragraph.
+    """
     rc = retrieve_context or _default_retrieve_context
+
+    if not await _emit(on_event, {"type": "planning"}):
+        logger.info("handbook generation cancelled before planning")
+        return ""
+
     steps = await plan(instruction)
     if not steps:
         raise RuntimeError("plan() produced no steps; cannot generate handbook")
@@ -260,6 +270,7 @@ async def generate_handbook(
             "type": "plan_ready",
             "total_steps": len(steps),
             "target_words_sum": target_sum,
+            "plan_text": plan_text,
         },
     ):
         logger.info("handbook generation cancelled before plan_ready consumed")

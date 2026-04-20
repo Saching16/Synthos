@@ -119,6 +119,8 @@ export function HandbookView({ topic, onTopicChange }: Props) {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(
     () => new Set(),
   )
+  /** Full planner output; set on ``plan_ready`` before any ``paragraph`` events. */
+  const [planOutline, setPlanOutline] = useState<string | null>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const runLockRef = useRef(false)
@@ -164,6 +166,7 @@ export function HandbookView({ topic, onTopicChange }: Props) {
     setDoneId(null)
     setDoneWords(0)
     setExpandedSections(new Set())
+    setPlanOutline(null)
 
     const payload: { topic: string; document_ids?: string[] } = { topic: t }
     if (selectedIds.size > 0) {
@@ -174,9 +177,12 @@ export function HandbookView({ topic, onTopicChange }: Props) {
       await openHandbookSse(
         payload,
         {
-          onPlanReady: ({ total_steps }) => {
+          onPlanReady: ({ total_steps, plan_text }) => {
             setPlanTotal(total_steps)
             setBodies(Array.from({ length: Math.max(total_steps, 0) }, () => undefined))
+            if (plan_text?.trim()) {
+              setPlanOutline(plan_text.trim())
+            }
           },
           onParagraph: ({ index, total, text, running_total }) => {
             setPlanTotal((prev) => (total > prev ? total : prev))
@@ -310,6 +316,15 @@ export function HandbookView({ topic, onTopicChange }: Props) {
 
       {streaming || planTotal > 0 ? (
         <div className="shrink-0 space-y-1 rounded-lg border border-slate-800 bg-slate-900/40 p-2 text-xs text-slate-400">
+          {streaming ? (
+            <p className="font-medium text-slate-300">
+              {planTotal === 0
+                ? 'Phase: planning — the model is outlining every section before any paragraph is written.'
+                : expandingNote
+                  ? 'Phase: expanding — adding depth to reach the word target.'
+                  : 'Phase: writing — drafting paragraphs from the fixed outline.'}
+            </p>
+          ) : null}
           <div className="flex justify-between gap-2">
             <span>
               Paragraphs: {planTotal ? `${maxIdx} / ${planTotal}` : '…'}
@@ -323,6 +338,17 @@ export function HandbookView({ topic, onTopicChange }: Props) {
             />
           </div>
           {expandingNote ? <p className="text-amber-200/90">{expandingNote}</p> : null}
+        </div>
+      ) : null}
+
+      {planOutline ? (
+        <div className="shrink-0 rounded-lg border border-slate-800 bg-slate-900/40 p-2">
+          <h4 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+            LLM outline (finished before drafting)
+          </h4>
+          <pre className="scroll-pane max-h-32 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-snug text-slate-300">
+            {planOutline}
+          </pre>
         </div>
       ) : null}
 
@@ -354,7 +380,7 @@ export function HandbookView({ topic, onTopicChange }: Props) {
         </h3>
         <div
           ref={previewRef}
-          className="scroll-pane min-h-0 flex-1 rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-sm text-slate-200"
+          className="scroll-pane min-h-[42vh] flex-1 basis-0 rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-sm text-slate-200 md:min-h-[50vh]"
         >
           <div className="[&_a]:text-sky-400 [&_a]:underline">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
@@ -362,7 +388,13 @@ export function HandbookView({ topic, onTopicChange }: Props) {
             </ReactMarkdown>
           </div>
           {sectionEntries.length === 0 ? (
-            <p className="mt-2 text-sm italic text-slate-500">Generating…</p>
+            <p className="mt-2 text-sm italic text-slate-500">
+              {streaming && !planOutline
+                ? 'Planning: waiting for the section outline from the model…'
+                : streaming && planOutline
+                  ? 'Writing: sections will appear here as they are drafted from the outline.'
+                  : 'Generating…'}
+            </p>
           ) : (
             sectionEntries.map(({ index, text }) => (
               <HandbookPreviewSection

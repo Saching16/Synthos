@@ -69,7 +69,7 @@ function App() {
         </section>
         <section
           ref={handbookRef}
-          className={`flex min-h-[320px] flex-col overflow-hidden bg-slate-950 p-4 transition-shadow md:h-full md:min-h-0 ${
+          className={`flex min-h-[320px] flex-col overflow-y-auto overflow-x-hidden bg-slate-950 p-4 transition-shadow md:h-full md:min-h-0 ${
             handbookFlash ? 'ring-2 ring-sky-500 ring-offset-2 ring-offset-slate-950' : ''
           }`}
         >

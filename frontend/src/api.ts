@@ -168,7 +168,14 @@ export async function openChatSse(
 }
 
 export type HandbookSseCallbacks = {
-  onPlanReady?: (p: { total_steps: number; target_words_sum: number }) => void
+  /** Fired before the planner LLM runs; no paragraphs are written until after ``plan_ready``. */
+  onPlanning?: () => void
+  onPlanReady?: (p: {
+    total_steps: number
+    target_words_sum: number
+    /** Full outline (``Paragraph N - Main Point: …`` lines) shown before drafting. */
+    plan_text?: string
+  }) => void
   onParagraph?: (p: {
     index: number
     total: number
@@ -187,7 +194,7 @@ export type HandbookSseCallbacks = {
 }
 
 /**
- * POST `/handbook` (SSE): `plan_ready`, `paragraph`, `expanding`, `done`, `error`.
+ * POST `/handbook` (SSE): `planning`, `plan_ready`, `paragraph`, `expanding`, `done`, `error`.
  */
 export async function openHandbookSse(
   body: { topic: string; document_ids?: string[] },
@@ -198,10 +205,18 @@ export async function openHandbookSse(
     onEvent: (eventType, data) => {
       try {
         const j = JSON.parse(data) as Record<string, unknown>
+        if (eventType === 'planning') {
+          callbacks.onPlanning?.()
+          return
+        }
         if (eventType === 'plan_ready') {
           callbacks.onPlanReady?.({
             total_steps: Number(j.total_steps ?? 0),
             target_words_sum: Number(j.target_words_sum ?? 0),
+            plan_text:
+              typeof j.plan_text === 'string' && j.plan_text.trim()
+                ? j.plan_text
+                : undefined,
           })
           return
         }
