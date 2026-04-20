@@ -162,35 +162,27 @@ Goal: bytes in, clean text + metadata out.
 
 Goal: a singleton LightRAG instance using Supabase for KV+vectors, OpenRouter for LLM + embeddings.
 
-- [ ] **5.1 `services/rag.py` factory**
+- [x] **5.1 `services/rag.py` factory**
   - Build `LightRAG(working_dir=settings.LIGHTRAG_WORKING_DIR, llm_model_func=llm_model_func, embedding_func=openrouter_embed_func, kv_storage="PGKVStorage", vector_storage="PGVectorStorage")`.
   - `llm_model_func(prompt, system_prompt=None, history_messages=[], **kwargs)` adapts our `LlmClient.complete` to LightRAG's expected signature.
   - `openrouter_embed_func`: batched (`<= 64` inputs/call) using `get_async_openrouter_client().embeddings.create` with `OPENROUTER_EMBED_MODEL`, `embedding_dim` from the model (e.g. 1536 for `text-embedding-3-small`).
   - Init exactly once in FastAPI lifespan; expose via dependency.
   - Acceptance: server boots, `working_dir` gets created, no errors connecting to Supabase.
-- [ ] **5.2 `insert_document(text, doc_id)` wrapper**
+- [x] **5.2 `insert_document(text, doc_id)` wrapper**
   - Calls `rag.ainsert(text, ids=[doc_id])`.
   - Acceptance: small string can be inserted and a debug query returns context.
-- [ ] **5.3 `query(question, mode="hybrid", only_need_context=False)` wrapper**
+- [x] **5.3 `query(question, mode="hybrid", only_need_context=False)` wrapper**
   - Returns either the LLM answer or the raw context block.
   - Acceptance: querying a freshly-inserted snippet returns relevant context.
 
 ### Verify Phase 5
 
 - [ ] Boot clean: start `uvicorn` → no LightRAG/asyncpg errors in the logs; `backend/.lightrag/` directory exists.
-- [ ] Round-trip script — save as `backend/scripts/check_rag.py` and run it:
+- [ ] Round-trip script — `backend/scripts/check_rag.py` (or inline equivalent). Use a **direct** Postgres URL (`db.*.supabase.co:5432`) via `SUPABASE_DB_URL` or `SUPABASE_DIRECT_DB_URL` (transaction pooler `:6543` breaks `pgvector` type registration). If TLS verification fails on your network, set `LIGHTRAG_PG_INSECURE_SSL=1` (dev only).
 
-  ```python
-  import asyncio
-  from app.services.rag import get_rag
-
-  async def main():
-      rag = await get_rag()
-      await rag.ainsert("The capital of France is Paris.", ids=["smoke-1"])
-      ctx = await rag.aquery("What is the capital of France?", param={"mode": "hybrid", "only_need_context": True})
-      print(ctx)
-
-  asyncio.run(main())
+  ```bash
+  cd backend
+  python scripts/check_rag.py
   ```
 
   Output contains the word `Paris`.

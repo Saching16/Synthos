@@ -51,7 +51,7 @@ backend/
       documents.py       # GET  /documents      list ingested PDFs
     services/
       pdf.py             # extraction + cleanup
-      rag.py             # LightRAG singleton wired to Supabase + OpenRouter LLM + embed
+      rag.py             # LightRAG singleton (PG KV + vectors), OpenRouter LLM + embed
       llm.py             # LlmClient: chat complete + stream, retries, token/latency logs
       openrouter.py      # AsyncOpenAI client for OpenRouter (chat + embeddings)
       agentwrite.py      # plan() + write_segments() with $CONTEXT$ injection
@@ -97,9 +97,13 @@ Defined in `backend/.env.example`. Never commit real values.
 | `OPENROUTER_BASE_URL`     |          | Defaults to `https://openrouter.ai/api/v1`              |
 | `OPENROUTER_CHAT_MODEL`   |          | Defaults to `openrouter/free` (zero-cost chat router)    |
 | `OPENROUTER_EMBED_MODEL`  |          | Defaults to `openai/text-embedding-3-small` (see pricing) |
+| `OPENROUTER_EMBEDDING_DIM` |         | Defaults to `1536` (must match embed model output size)   |
 | `OPENROUTER_HTTP_REFERER` |          | Optional; OpenRouter attribution header                  |
 | `OPENROUTER_APP_TITLE`    |          | Optional; defaults to `Handbook Generator`               |
-| `SUPABASE_DB_URL`         |    ✅    | `postgresql://postgres:<pwd>@<host>:5432/postgres`      |
+| `SUPABASE_DB_URL`         |    ✅    | Postgres DSN (direct `db.*.supabase.co:5432` recommended)  |
+| `SUPABASE_DIRECT_DB_URL` |          | Optional; direct DSN for LightRAG if `SUPABASE_DB_URL` is pooler `:6543` |
+| `SUPABASE_POSTGRES_PREFER_IPV4` |   | Set `1` after Supabase IPv4 add-on (or IPv6-broken networks); resolves hostname to IPv4 before connect |
+| `LIGHTRAG_PG_INSECURE_SSL` |        | Set to `1` if Postgres TLS verification fails in dev (often unnecessary: app may relax TLS when using an IPv6 literal from `dig`) |
 | `SUPABASE_URL`         |          | Optional, only if storing raw PDFs in Supabase Storage  |
 | `SUPABASE_SERVICE_KEY` |          | Optional, pairs with `SUPABASE_URL`                     |
 | `LIGHTRAG_WORKING_DIR` |          | Defaults to `backend/.lightrag/`                        |
@@ -120,6 +124,8 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env       # then fill in keys
 uvicorn app.main:app --reload --port 8000
+# If LightRAG Postgres fails with gaierror but `dig AAAA db.<ref>.supabase.co` works, try:
+# uvicorn app.main:app --reload --port 8000 --loop asyncio
 
 # Supabase schema (one-time, after creating the project + enabling pgvector)
 psql "$SUPABASE_DB_URL" -f backend/supabase/schema.sql
@@ -140,6 +146,9 @@ cd backend && python -m app.services.llm --stream "Say hi in one short sentence.
 
 # PDF extraction smoke
 cd backend && python -m app.services.pdf "../Documentation/Unleashing 10000 Word Generation From Long Context.pdf"
+
+# LightRAG smoke (needs direct Postgres + OpenRouter; see .env.example)
+cd backend && python scripts/check_rag.py
 ```
 
 If you add new commands (tests, migrations, etc.), document them here.

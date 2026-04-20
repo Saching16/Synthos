@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
-from urllib.parse import quote, unquote
+import ssl
+from typing import Any
+from urllib.parse import quote, unquote, urlparse
 
 import asyncpg
 from fastapi import Request
@@ -45,16 +48,39 @@ def normalize_postgres_dsn(dsn: str) -> str:
     return f"{_PG_PREFIX}{user}:{encoded}@{host_and_rest}"
 
 
+def _dsn_host_is_ip_literal(dsn: str) -> bool:
+    u = urlparse(normalize_postgres_dsn(dsn.strip()))
+    h = u.hostname
+    if not h:
+        return False
+    try:
+        ipaddress.ip_address(h.strip("[]").split("%", 1)[0])
+        return True
+    except ValueError:
+        return False
+
+
 async def create_pool(dsn: str) -> asyncpg.Pool:
     dsn = normalize_postgres_dsn(dsn)
     # Transaction pooler (PgBouncer, port 6543): prepared statements break; disable cache.
     # Safe for direct Postgres (5432) too; small perf tradeoff.
-    return await asyncpg.create_pool(
-        dsn=dsn,
-        min_size=1,
-        max_size=10,
-        statement_cache_size=0,
-    )
+    ssl_ctx: ssl.SSLContext | None = None
+    if _dsn_host_is_ip_literal(dsn):
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
+        logger.warning(
+            "asyncpg pool: TLS verify disabled (host is an IP literal; cert is for db hostname)"
+        )
+    kw: dict[str, Any] = {
+        "dsn": dsn,
+        "min_size": 1,
+        "max_size": 10,
+        "statement_cache_size": 0,
+    }
+    if ssl_ctx is not None:
+        kw["ssl"] = ssl_ctx
+    return await asyncpg.create_pool(**kw)
 
 
 async def close_pool(pool: asyncpg.Pool | None) -> None:

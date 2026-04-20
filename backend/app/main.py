@@ -14,6 +14,11 @@ from app.config import get_settings
 from app.db import close_pool, create_pool, db_status
 from app.logging_config import setup_logging
 from app.middleware import RequestLoggingMiddleware
+from app.services.rag import (
+    rewrite_supabase_dsn_tcp_host,
+    shutdown_rag,
+    startup_rag,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +32,21 @@ async def lifespan(app: FastAPI):
     setup_logging(settings.log_level)
     app.state.db_pool = None
     if settings.supabase_db_url:
-        app.state.db_pool = await create_pool(settings.supabase_db_url)
+        pool_dsn = rewrite_supabase_dsn_tcp_host(
+            settings.supabase_db_url,
+            settings.supabase_postgres_prefer_ipv4,
+        )
+        app.state.db_pool = await create_pool(pool_dsn)
     try:
+        try:
+            await startup_rag()
+        except Exception:
+            logger.exception(
+                "LightRAG initialization failed; server continues without RAG"
+            )
         yield
     finally:
+        await shutdown_rag()
         await close_pool(getattr(app.state, "db_pool", None))
 
 

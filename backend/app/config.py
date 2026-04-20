@@ -9,6 +9,14 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _env_bool(v: object) -> bool:
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().lower() in ("1", "true", "yes", "on")
+    return bool(v)
+
+
 class Settings(BaseSettings):
     """Application configuration. Required keys must be set before the app starts."""
 
@@ -29,11 +37,23 @@ class Settings(BaseSettings):
     openrouter_chat_model: str = "openrouter/free"
     # Embeddings use the same API key; pick any embedding model OpenRouter exposes (may be paid per token).
     openrouter_embed_model: str = "openai/text-embedding-3-small"
+    # Vector size for OpenRouter embedding model (text-embedding-3-small → 1536).
+    openrouter_embedding_dim: int = 1536
     # Optional attribution headers recommended by OpenRouter (https://openrouter.ai/docs)
     openrouter_http_referer: str | None = None
     openrouter_app_title: str = "Handbook Generator"
 
     supabase_db_url: str | None = None
+    # Direct Postgres (db.*.supabase.co:5432) for LightRAG when SUPABASE_DB_URL uses the pooler (:6543).
+    supabase_direct_db_url: str | None = None
+    # Resolve db.*.supabase.co to an IPv4 literal (AF_INET, then dig A). Use after Supabase IPv4 add-on
+    # or on networks where IPv6 to Supabase fails (errno 65).
+    supabase_postgres_prefer_ipv4: bool = False
+
+    @field_validator("supabase_postgres_prefer_ipv4", mode="before")
+    @classmethod
+    def _coerce_supabase_postgres_prefer_ipv4(cls, v: object) -> bool:
+        return _env_bool(v)
 
     @field_validator("supabase_db_url", mode="before")
     @classmethod
@@ -43,6 +63,16 @@ class Settings(BaseSettings):
         if isinstance(v, str) and not v.strip():
             return None
         return str(v).strip()
+
+    @field_validator("supabase_direct_db_url", mode="before")
+    @classmethod
+    def empty_supabase_direct_url(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
+        return str(v).strip()
+
     supabase_url: str | None = None
     supabase_service_key: str | None = None
 
@@ -64,6 +94,10 @@ class Settings(BaseSettings):
     @property
     def lightrag_working_path(self) -> Path:
         return Path(self.lightrag_working_dir).resolve()
+
+    @property
+    def lightrag_postgres_dsn(self) -> str | None:
+        return self.supabase_direct_db_url or self.supabase_db_url
 
     @property
     def openrouter_default_headers(self) -> dict[str, str]:
