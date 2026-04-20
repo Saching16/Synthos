@@ -194,6 +194,56 @@ class LlmClient:
                 latency_ms=latency_ms,
             )
 
+    async def stream_messages(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 4096,
+        temperature: float = 0.7,
+    ) -> AsyncIterator[str]:
+        """Stream chat completions for a full OpenAI-style ``messages`` list."""
+
+        @_transient_chat_retry()
+        async def _open_stream():
+            return await self._client.chat.completions.create(
+                model=self._model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=True,
+                stream_options={"include_usage": True},
+            )
+
+        t0 = time.perf_counter()
+        try:
+            stream_resp = await _open_stream()
+        except BadRequestError as e:
+            if _context_length_hint(e):
+                logger.warning(
+                    "llm context-length or token limit error (not retried): %s", e
+                )
+            raise
+
+        usage_prompt: int | None = None
+        usage_completion: int | None = None
+        try:
+            async for chunk in stream_resp:
+                if chunk.usage is not None:
+                    usage_prompt = chunk.usage.prompt_tokens
+                    usage_completion = chunk.usage.completion_tokens
+                if chunk.choices:
+                    delta = chunk.choices[0].delta.content
+                    if delta:
+                        yield delta
+        finally:
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+            _log_llm_call(
+                model=self._model,
+                prompt_tokens=usage_prompt,
+                completion_tokens=usage_completion,
+                latency_ms=latency_ms,
+            )
+
 
 async def _run_cli(prompt: str, *, use_stream: bool) -> int:
     llm = LlmClient()

@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.db import close_pool, create_pool, db_status
 from app.logging_config import setup_logging
 from app.middleware import RequestLoggingMiddleware
+from app.routes import chat as chat_routes
 from app.routes import documents as documents_routes
 from app.routes import upload as upload_routes
 from app.services.rag import (
@@ -120,6 +121,7 @@ def create_app() -> FastAPI:
 
     app.include_router(upload_routes.router)
     app.include_router(documents_routes.router)
+    app.include_router(chat_routes.router)
 
     return app
 

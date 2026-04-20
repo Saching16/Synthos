@@ -226,12 +226,12 @@ Goal: PDFs flow from frontend bytes into LightRAG and into the `documents` table
 
 Goal: streaming, RAG-grounded answers.
 
-- [ ] **7.1 `POST /chat` (SSE)**
+- [x] **7.1 `POST /chat` (SSE)**
   - Body: `{message: str, history: [{role, content}]}`.
   - Steps: `context = rag.query(message, mode="hybrid", only_need_context=True)` → build system prompt that interpolates `context` and `history` → `llm.stream(...)` → yield `event: token` chunks → final `event: done`.
   - Honor `request.is_disconnected()`.
   - Acceptance: with one PDF uploaded, asking "Summarize the paper" streams a grounded answer.
-- [ ] **7.2 Handbook intent detection**
+- [x] **7.2 Handbook intent detection**
   - Helper `is_handbook_request(message) -> bool` (regex on `handbook|long-form|20[\s,]?000 words?|comprehensive guide`).
   - When true, chat replies with a short ack + a structured `event: redirect` containing `/handbook` payload, and the frontend opens the handbook flow.
   - Acceptance: "Create a handbook on RAG" triggers redirect, not a normal chat answer.
@@ -240,7 +240,7 @@ Goal: streaming, RAG-grounded answers.
 
 Prereq: the LongWriter PDF is uploaded (Phase 6 verification).
 
-- [ ] Streamed grounded answer:
+- [x] Streamed grounded answer:
 
   ```bash
   curl -N -X POST localhost:8000/chat \
@@ -250,7 +250,7 @@ Prereq: the LongWriter PDF is uploaded (Phase 6 verification).
 
   You see multiple `event: token` lines arriving over a few seconds, then a final `event: done`. The concatenated text mentions `plan` and `write` (or `AgentWrite`).
 - [ ] Disconnect honored: re-run the curl and `Ctrl+C` mid-stream → backend logs show "client disconnected" and no further LLM tokens are billed.
-- [ ] Handbook intent:
+- [x] Handbook intent:
 
   ```bash
   curl -N -X POST localhost:8000/chat \
