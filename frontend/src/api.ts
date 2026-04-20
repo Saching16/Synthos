@@ -57,38 +57,56 @@ export function uploadPdfs(
       fd.append('files', f, f.name)
     }
     xhr.open('POST', apiUrl('/upload'))
-    xhr.responseType = 'json'
     xhr.upload.onprogress = (ev) => {
       if (ev.lengthComputable) {
         onProgress?.(ev.loaded, ev.total)
       }
     }
     xhr.onload = () => {
+      if (xhr.status === 0) {
+        reject(
+          new Error(
+            'Upload failed: no response (API unreachable, wrong URL, or browser blocked the request). ' +
+              'For `npm run dev`, leave `VITE_API_BASE` unset so `/upload` is proxied to port 8000, ' +
+              'or set `VITE_API_BASE` to your API origin (e.g. http://127.0.0.1:8000).',
+          ),
+        )
+        return
+      }
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(xhr.response as UploadResult[])
+        let data: UploadResult[]
+        try {
+          data = JSON.parse(xhr.responseText || 'null') as UploadResult[]
+          if (!Array.isArray(data)) {
+            throw new Error('not an array')
+          }
+        } catch {
+          reject(
+            new Error(
+              `Upload failed: bad JSON (${xhr.status}): ${(xhr.responseText || '').slice(0, 240)}`,
+            ),
+          )
+          return
+        }
+        resolve(data)
         return
       }
       let msg = xhr.responseText || xhr.statusText
-      if (typeof xhr.response === 'object' && xhr.response && 'detail' in xhr.response) {
-        const d = (xhr.response as { detail: unknown }).detail
-        msg = typeof d === 'string' ? d : JSON.stringify(d)
-      } else if (!msg.trim()) {
-        try {
-          const j = JSON.parse(xhr.responseText) as { detail?: unknown }
-          if (j.detail != null) {
-            msg =
-              typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail)
-          }
-        } catch {
-          /* keep msg */
+      try {
+        const j = JSON.parse(xhr.responseText) as { detail?: unknown }
+        if (j.detail != null) {
+          msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail)
         }
+      } catch {
+        /* keep body or statusText */
       }
       reject(new Error(`Upload failed: ${xhr.status} ${msg}`))
     }
     xhr.onerror = () =>
       reject(
         new Error(
-          'Upload failed: network error (check API is running and VITE_API_BASE matches it)',
+          'Upload failed: network error (browser could not complete the request). ' +
+            'Start the API on port 8000, or set `VITE_DEV_PROXY_TARGET` in the env used by Vite if the API uses another host/port.',
         ),
       )
     xhr.send(fd)
