@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+import json
 import logging
 import ssl
 from typing import Any
@@ -60,6 +61,22 @@ def _dsn_host_is_ip_literal(dsn: str) -> bool:
         return False
 
 
+async def _init_connection(conn: asyncpg.Connection) -> None:
+    """Decode ``json``/``jsonb`` columns to Python objects (asyncpg returns ``str`` by default)."""
+    await conn.set_type_codec(
+        "jsonb",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
+    await conn.set_type_codec(
+        "json",
+        encoder=json.dumps,
+        decoder=json.loads,
+        schema="pg_catalog",
+    )
+
+
 async def create_pool(dsn: str) -> asyncpg.Pool:
     dsn = normalize_postgres_dsn(dsn)
     # Transaction pooler (PgBouncer, port 6543): prepared statements break; disable cache.
@@ -79,6 +96,7 @@ async def create_pool(dsn: str) -> asyncpg.Pool:
         "statement_cache_size": 0,
         # Avoid hung clients when Supabase or the network stalls mid-query.
         "command_timeout": 60,
+        "init": _init_connection,
     }
     if ssl_ctx is not None:
         kw["ssl"] = ssl_ctx

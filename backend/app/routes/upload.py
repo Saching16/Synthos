@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 
 import asyncpg
@@ -96,14 +95,14 @@ async def upload_pdfs(
                 ins = await conn.fetchrow(
                     """
                     INSERT INTO documents (filename, sha256, pages, char_count, page_texts)
-                    VALUES ($1, $2, $3, $4, $5::jsonb)
+                    VALUES ($1, $2, $3, $4, $5)
                     RETURNING id, filename, pages, char_count
                     """,
                     name,
                     digest,
                     extracted.pages,
                     extracted.char_count,
-                    json.dumps(extracted.page_texts, ensure_ascii=False),
+                    extracted.page_texts,
                 )
             except UndefinedColumnError:
                 logger.warning(

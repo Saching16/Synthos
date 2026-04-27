@@ -318,7 +318,7 @@ async def generate_handbook(
             },
         )
         iterations = 0
-        while total < 20_000 and total < 30_000 and iterations < 60:
+        while total < 20_000 and iterations < 60:
             iterations += 1
             if not bodies:
                 break

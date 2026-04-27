@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import logging
 from pathlib import Path
@@ -232,11 +233,12 @@ async def download_handbook(
         md,
         extensions=["extra", "fenced_code", "tables", "nl2br"],
     )
+    title_html = html.escape(topic[:200])
     html_doc = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>{topic[:200]}</title>
+<title>{title_html}</title>
 <style>
 body {{ font-family: Georgia, serif; margin: 2rem; line-height: 1.45; }}
 h1, h2, h3, h4 {{ page-break-after: avoid; }}
